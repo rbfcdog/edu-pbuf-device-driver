@@ -146,7 +146,8 @@ O cliente abre `/dev/edu_chat` com `O_RDWR | O_NONBLOCK`, ativa append por
 Ao entrar, ele descarta silenciosamente o histórico antigo; depois disso, mostra
 somente mensagens novas. No driver, escritas em modo append não resetam o cursor
 de leitura do próprio descritor, evitando repetir a conversa inteira a cada
-mensagem enviada.
+mensagem enviada. No terminal, o cliente também apaga a linha crua que acabou de
+ser digitada e deixa visível apenas a versão formatada como `nickname: mensagem`.
 
 Exemplo esperado:
 

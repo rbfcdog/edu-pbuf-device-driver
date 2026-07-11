@@ -36,6 +36,15 @@ static void drain_existing_messages(int fd)
 	}
 }
 
+static void erase_echoed_input_line(void)
+{
+	if (!isatty(STDIN_FILENO) || !isatty(STDOUT_FILENO))
+		return;
+
+	printf("\033[1A\033[2K");
+	fflush(stdout);
+}
+
 int main(int argc, char **argv)
 {
 	const char *path = argc > 1 ? argv[1] : "/dev/edu_chat";
@@ -77,6 +86,8 @@ int main(int argc, char **argv)
 		if (fds[0].revents & POLLIN) {
 			if (!fgets(line, sizeof(line), stdin))
 				break;
+
+			erase_echoed_input_line();
 
 			n = snprintf(buf, sizeof(buf), "%s: %s", nick, line);
 			if (n > 0 && write(fd, buf, n) < 0)
