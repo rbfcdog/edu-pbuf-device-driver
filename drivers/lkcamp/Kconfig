@@ -11,7 +11,9 @@ config EDU_PBUF
 
 	  The driver stores bytes written by user space in a kernel buffer,
 	  returns them through read(), and exposes ioctl commands to query,
-	  clear, and configure the logical write limit of the buffer.
+	  clear, collect statistics, configure mode flags, and configure the
+	  logical write limit of the buffer. It also exposes simple sysfs
+	  attributes and poll/select readiness for educational purposes.
 
 	  To build it as a module, choose M. The module will be called
 	  edu_pbuf.
