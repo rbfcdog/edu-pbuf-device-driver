@@ -142,8 +142,10 @@ sudo cat /dev/edu_pbuf
 Ativar leitura bloqueante e limpeza após leitura:
 
 ```sh
+echo 4096 | sudo tee /sys/class/edu_pbuf/edu_pbuf/limit >/dev/null
 echo 0x6 | sudo tee /sys/class/edu_pbuf/edu_pbuf/flags >/dev/null
 echo clear | sudo tee /sys/class/edu_pbuf/edu_pbuf/clear >/dev/null
+cat /sys/class/edu_pbuf/edu_pbuf/limit
 cat /sys/class/edu_pbuf/edu_pbuf/flags
 cat /sys/class/edu_pbuf/edu_pbuf/length
 ```

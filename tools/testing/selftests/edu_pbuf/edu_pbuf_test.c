@@ -17,12 +17,17 @@ static void die(const char *msg)
 	exit(EXIT_FAILURE);
 }
 
+static void get_info(int fd, struct edu_pbuf_info *info)
+{
+	if (ioctl(fd, EDU_PBUF_IOC_GET_INFO, info) < 0)
+		die("ioctl EDU_PBUF_IOC_GET_INFO");
+}
+
 static void print_info(int fd, const char *label)
 {
 	struct edu_pbuf_info info;
 
-	if (ioctl(fd, EDU_PBUF_IOC_GET_INFO, &info) < 0)
-		die("ioctl EDU_PBUF_IOC_GET_INFO");
+	get_info(fd, &info);
 
 	printf("%s: capacity=%u limit=%u length=%u flags=0x%x\n",
 	       label, info.capacity, info.limit, info.length, info.flags);
@@ -127,6 +132,8 @@ int main(int argc, char **argv)
 		"ALERTA origem=selftest severidade=media mensagem=cpu_alta\n";
 	const char *suffix =
 		"ALERTA origem=selftest severidade=baixa mensagem=disco_ok\n";
+	struct edu_pbuf_info initial_info;
+	__u32 restore_limit;
 	__u32 new_limit = 32;
 	__u32 flags = EDU_PBUF_F_APPEND | EDU_PBUF_F_CLEAR_ON_READ;
 	int fd;
@@ -134,6 +141,9 @@ int main(int argc, char **argv)
 	fd = open(path, O_RDWR);
 	if (fd < 0)
 		die("open");
+
+	get_info(fd, &initial_info);
+	restore_limit = initial_info.limit;
 
 	if (ioctl(fd, EDU_PBUF_IOC_CLEAR) < 0)
 		die("ioctl EDU_PBUF_IOC_CLEAR initial");
@@ -166,6 +176,8 @@ int main(int argc, char **argv)
 
 	if (ioctl(fd, EDU_PBUF_IOC_CLEAR) < 0)
 		die("ioctl EDU_PBUF_IOC_CLEAR");
+	if (ioctl(fd, EDU_PBUF_IOC_SET_LIMIT, &restore_limit) < 0)
+		die("ioctl EDU_PBUF_IOC_SET_LIMIT restore");
 	print_info(fd, "after clear");
 
 	close(fd);
