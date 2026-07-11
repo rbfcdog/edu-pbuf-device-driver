@@ -144,23 +144,29 @@ Ativar leitura bloqueante e limpeza após leitura:
 ```sh
 echo 0x6 | sudo tee /sys/class/edu_pbuf/edu_pbuf/flags
 echo clear | sudo tee /sys/class/edu_pbuf/edu_pbuf/clear
+cat /sys/class/edu_pbuf/edu_pbuf/flags
+cat /sys/class/edu_pbuf/edu_pbuf/length
 ```
 
 Em um terminal, deixar um monitor esperando alertas:
 
 ```sh
-sudo sh -c 'while true; do dd if=/dev/edu_pbuf bs=4096 count=1 2>/dev/null; echo; done'
+sudo cat /dev/edu_pbuf
 ```
 
 Em outro terminal, publicar alertas:
 
 ```sh
-printf 'ALERTA cpu=95 origem=terminal2 severidade=alta\n' | sudo tee /dev/edu_pbuf
-printf 'ALERTA memoria=87 origem=terminal2 severidade=media\n' | sudo tee /dev/edu_pbuf
+printf 'ALERTA cpu=95 origem=terminal2 severidade=alta\n' | sudo tee /dev/edu_pbuf >/dev/null
+printf 'ALERTA memoria=87 origem=terminal2 severidade=media\n' | sudo tee /dev/edu_pbuf >/dev/null
 ```
 
 O terminal do monitor acorda quando cada alerta chega. Use `Ctrl+C` para parar o
 monitor.
+
+Se o mesmo alerta aparecer repetido muitas vezes, pare o monitor com `Ctrl+C` e
+confirme se `flags` está em `0x6`. Esse valor ativa `CLEAR_ON_READ` e
+`BLOCKING_READ`; sem ele, o monitor pode reler o mesmo alerta em loop.
 
 ## Teste com `ioctl()`
 
