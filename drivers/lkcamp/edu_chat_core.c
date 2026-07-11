@@ -41,6 +41,13 @@ void edu_chat_clear_locked(void)
 	edu_chat_len = 0;
 }
 
+static char *edu_chat_devnode(const struct device *dev, umode_t *mode)
+{
+	if (mode)
+		*mode = 0666;
+	return NULL;
+}
+
 static int __init edu_chat_init(void)
 {
 	int ret;
@@ -69,6 +76,7 @@ static int __init edu_chat_init(void)
 		ret = PTR_ERR(edu_chat_class);
 		goto err_del_cdev;
 	}
+	edu_chat_class->devnode = edu_chat_devnode;
 
 	/* Create /dev/edu_chat automatically for the chat room demo. */
 	edu_chat_device = device_create(edu_chat_class, NULL, edu_chat_devt,
