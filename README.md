@@ -1,22 +1,28 @@
-# `edu_pbuf`: pseudo driver de dispositivo para Linux
+# `edu_pbuf`: fila educacional de alertas para Linux
 
-`edu_pbuf` é um pseudo driver de dispositivo educacional para o Kernel Linux.
-Ele cria o character device `/dev/edu_pbuf` e simula um pequeno canal de
-mensagens entre user space e kernel space.
+`edu_pbuf` é um pseudo device driver educacional para o Kernel Linux. Ele cria
+o character device `/dev/edu_pbuf` e simula uma fila de alertas do sistema para
+aplicações de monitoramento em user space.
 
-A função principal do driver é manter um buffer dentro do kernel. Dados escritos
-em `/dev/edu_pbuf` são copiados de user space para kernel space com
-`copy_from_user()`. Depois, esses dados podem ser lidos de volta por user space
-com `copy_to_user()`.
+A ideia é simples: um processo publica alertas escrevendo em `/dev/edu_pbuf`, e
+outro processo lê ou espera esses alertas pelo mesmo device.
 
-Além da funcionalidade mínima de buffer, o driver demonstra interfaces usadas em
-drivers reais:
+Tecnicamente, o requisito principal do projeto está no caminho de leitura e
+escrita:
+
+- `write()` usa `copy_from_user()` para copiar o alerta de user space para um
+  buffer em memória do kernel;
+- `read()` usa `copy_to_user()` para copiar os alertas pendentes do kernel de
+  volta para user space.
+
+Além do buffer mínimo, o driver demonstra recursos comuns em drivers reais:
 
 - comandos `ioctl()` para consulta e configuração estruturada;
 - atributos `sysfs` para configuração simples e diagnóstico;
+- modo append para acumular alertas;
+- modo clear-on-read para consumir alertas após leitura;
+- leitura bloqueante para um monitor esperar novos alertas;
 - suporte a `poll/select`;
-- modos configuráveis por flags;
-- leitura bloqueante opcional;
 - estatísticas internas de uso.
 
 ## O que o driver demonstra
@@ -115,20 +121,57 @@ ls -l /dev/edu_pbuf
 sudo dmesg -T | tail -n 20
 ```
 
-Teste básico de escrita e leitura:
+Publicar e ler um alerta:
 
 ```sh
-printf 'mensagem do usuario\n' | sudo tee /dev/edu_pbuf
+printf 'ALERTA temperatura=82 origem=demo severidade=alta\n' | sudo tee /dev/edu_pbuf
 sudo cat /dev/edu_pbuf
 ```
 
-Teste com `ioctl()`:
+## Demonstração como fila de alertas
+
+Ativar append para acumular alertas:
+
+```sh
+echo 0x1 | sudo tee /sys/class/edu_pbuf/edu_pbuf/flags
+printf 'ALERTA cpu=91 origem=append\n' | sudo tee /dev/edu_pbuf
+printf 'ALERTA disco=88 origem=append\n' | sudo tee /dev/edu_pbuf
+sudo cat /dev/edu_pbuf
+```
+
+Ativar leitura bloqueante e limpeza após leitura:
+
+```sh
+echo 0x6 | sudo tee /sys/class/edu_pbuf/edu_pbuf/flags
+echo clear | sudo tee /sys/class/edu_pbuf/edu_pbuf/clear
+```
+
+Em um terminal, deixar um monitor esperando alertas:
+
+```sh
+sudo sh -c 'while true; do dd if=/dev/edu_pbuf bs=4096 count=1 2>/dev/null; echo; done'
+```
+
+Em outro terminal, publicar alertas:
+
+```sh
+printf 'ALERTA cpu=95 origem=terminal2 severidade=alta\n' | sudo tee /dev/edu_pbuf
+printf 'ALERTA memoria=87 origem=terminal2 severidade=media\n' | sudo tee /dev/edu_pbuf
+```
+
+O terminal do monitor acorda quando cada alerta chega. Use `Ctrl+C` para parar o
+monitor.
+
+## Teste com `ioctl()`
 
 ```sh
 sudo tools/testing/selftests/edu_pbuf/edu_pbuf_test /dev/edu_pbuf
 ```
 
-Inspecionar atributos `sysfs`:
+O selftest consulta informações, limpa a fila, ativa flags, escreve alertas,
+usa `poll()`, lê os dados, altera o limite lógico e consulta estatísticas.
+
+## Inspeção por `sysfs`
 
 ```sh
 ls -l /sys/class/edu_pbuf/edu_pbuf/
@@ -136,19 +179,10 @@ cat /sys/class/edu_pbuf/edu_pbuf/limit
 cat /sys/class/edu_pbuf/edu_pbuf/flags
 cat /sys/class/edu_pbuf/edu_pbuf/length
 cat /sys/class/edu_pbuf/edu_pbuf/stats
-```
-
-Ativar modo append por `sysfs`:
-
-```sh
-echo 0x1 | sudo tee /sys/class/edu_pbuf/edu_pbuf/flags
-printf 'parte A ' | sudo tee /dev/edu_pbuf
-printf 'parte B\n' | sudo tee /dev/edu_pbuf
-sudo cat /dev/edu_pbuf
 echo clear | sudo tee /sys/class/edu_pbuf/edu_pbuf/clear
 ```
 
-Remover o módulo:
+## Remoção
 
 ```sh
 sudo rmmod edu_pbuf
@@ -158,7 +192,6 @@ sudo dmesg -T | tail -n 20
 ## Resumo
 
 Para o usuário, `edu_pbuf` é um dispositivo virtual em `/dev/edu_pbuf` que
-permite escrever uma mensagem, armazená-la em um buffer dentro do kernel e
-recuperá-la depois. O objetivo é demonstrar, de forma prática, como um character
-device Linux troca dados com user space e como um driver pode expor interfaces
-de configuração por `ioctl()` e `sysfs`.
+funciona como uma fila educacional de alertas. Ele permite publicar alertas,
+armazená-los em memória do kernel, recuperá-los por leitura, esperar novos
+eventos e configurar o comportamento por `ioctl()` ou `sysfs`.

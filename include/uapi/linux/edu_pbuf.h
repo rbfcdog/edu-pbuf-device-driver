@@ -14,6 +14,7 @@
  */
 #define EDU_PBUF_IOC_MAGIC		0xE7
 
+/* Current state of the educational alert queue. */
 struct edu_pbuf_info {
 	__u32 capacity;
 	__u32 limit;
@@ -21,6 +22,7 @@ struct edu_pbuf_info {
 	__u32 flags;
 };
 
+/* Append alerts, consume them after read, or wait until a new alert arrives. */
 #define EDU_PBUF_F_APPEND		(1U << 0)
 #define EDU_PBUF_F_CLEAR_ON_READ	(1U << 1)
 #define EDU_PBUF_F_BLOCKING_READ	(1U << 2)
@@ -28,6 +30,7 @@ struct edu_pbuf_info {
 					 EDU_PBUF_F_CLEAR_ON_READ | \
 					 EDU_PBUF_F_BLOCKING_READ)
 
+/* Usage counters exposed to user space for the demo monitor. */
 struct edu_pbuf_stats {
 	__u64 opens;
 	__u64 closes;

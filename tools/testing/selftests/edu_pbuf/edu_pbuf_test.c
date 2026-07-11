@@ -124,8 +124,9 @@ int main(int argc, char **argv)
 {
 	const char *path = argc > 1 ? argv[1] : "/dev/edu_pbuf";
 	const char *msg = argc > 2 ? argv[2] :
-		"teste do edu_pbuf via user space\n";
-	const char *suffix = "segunda escrita em modo append\n";
+		"ALERTA origem=selftest severidade=media mensagem=cpu_alta\n";
+	const char *suffix =
+		"ALERTA origem=selftest severidade=baixa mensagem=disco_ok\n";
 	__u32 new_limit = 32;
 	__u32 flags = EDU_PBUF_F_APPEND | EDU_PBUF_F_CLEAR_ON_READ;
 	int fd;

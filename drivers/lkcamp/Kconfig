@@ -3,17 +3,17 @@
 menu "LKCAMP educational drivers"
 
 config EDU_PBUF
-	tristate "Educational pseudo buffer character driver"
+	tristate "Educational system alert queue character driver"
 	default m
 	help
 	  Builds /dev/edu_pbuf, an educational pseudo character driver
 	  based on the LKCAMP device-driver tutorial.
 
-	  The driver stores bytes written by user space in a kernel buffer,
-	  returns them through read(), and exposes ioctl commands to query,
-	  clear, collect statistics, configure mode flags, and configure the
-	  logical write limit of the buffer. It also exposes simple sysfs
-	  attributes and poll/select readiness for educational purposes.
+	  The driver simulates a small system alert queue. User space can
+	  publish alerts by writing to /dev/edu_pbuf, while another process
+	  can read pending alerts, wait for new alerts through blocking read
+	  or poll/select, and configure queue behavior through ioctl or
+	  sysfs attributes.
 
 	  To build it as a module, choose M. The module will be called
 	  edu_pbuf.
