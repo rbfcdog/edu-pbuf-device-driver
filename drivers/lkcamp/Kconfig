@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+menu "LKCAMP educational drivers"
+
+config EDU_PBUF
+	tristate "Educational pseudo buffer character driver"
+	default m
+	help
+	  Builds /dev/edu_pbuf, an educational pseudo character driver
+	  based on the LKCAMP device-driver tutorial.
+
+	  The driver stores bytes written by user space in a kernel buffer,
+	  returns them through read(), and exposes ioctl commands to query,
+	  clear, and configure the logical write limit of the buffer.
+
+	  To build it as a module, choose M. The module will be called
+	  edu_pbuf.
+
+endmenu

@@ -1,0 +1,32 @@
+diff --git a/drivers/Kconfig b/drivers/Kconfig
+index f2bed2ddeb66..9c4ca644d899 100644
+--- a/drivers/Kconfig
++++ b/drivers/Kconfig
+@@ -253,4 +253,6 @@ source "drivers/cdx/Kconfig"
+ 
+ source "drivers/resctrl/Kconfig"
+ 
++source "drivers/lkcamp/Kconfig"
++
+ endmenu
+diff --git a/drivers/Makefile b/drivers/Makefile
+index 0841ea851847..b6a65504c52d 100644
+--- a/drivers/Makefile
++++ b/drivers/Makefile
+@@ -198,3 +198,4 @@ obj-y				+= resctrl/
+ 
+ obj-$(CONFIG_DIBS)		+= dibs/
+ obj-$(CONFIG_S390)		+= s390/
++obj-y				+= lkcamp/
+diff --git a/tools/testing/selftests/Makefile b/tools/testing/selftests/Makefile
+index 8d4db2241cc2..9fbb43636e0a 100644
+--- a/tools/testing/selftests/Makefile
++++ b/tools/testing/selftests/Makefile
+@@ -27,6 +27,7 @@ TARGETS += drivers/net/team
+ TARGETS += drivers/net/virtio_net
+ TARGETS += drivers/platform/x86/intel/ifs
+ TARGETS += dt
++TARGETS += edu_pbuf
+ TARGETS += efivarfs
+ TARGETS += exec
+ TARGETS += fchmodat2
