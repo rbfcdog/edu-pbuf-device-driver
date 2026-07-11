@@ -8,6 +8,7 @@ The driver demonstrates:
 
 - dynamic kernel module loading with `insmod`, `lsmod` and `rmmod`;
 - in-tree driver integration with `Kconfig` and `Makefile`;
+- a multi-file module layout split into core, file operations and `sysfs`;
 - character device registration with `alloc_chrdev_region()` and `cdev`;
 - automatic `/dev/edu_pbuf` creation with `class_create()` and
   `device_create()`;
@@ -23,7 +24,10 @@ The driver demonstrates:
 ```text
 drivers/lkcamp/Kconfig
 drivers/lkcamp/Makefile
-drivers/lkcamp/edu_pbuf.c
+drivers/lkcamp/edu_pbuf_core.c
+drivers/lkcamp/edu_pbuf_fops.c
+drivers/lkcamp/edu_pbuf_sysfs.c
+drivers/lkcamp/edu_pbuf_internal.h
 include/uapi/linux/edu_pbuf.h
 tools/testing/selftests/edu_pbuf/Makefile
 tools/testing/selftests/edu_pbuf/edu_pbuf_test.c
