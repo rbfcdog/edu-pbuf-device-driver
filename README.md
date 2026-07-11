@@ -71,8 +71,6 @@ tools/testing/selftests/edu_chat/edu_chat_client.c
 kernel-integration.patch
 ```
 
-Este repositorio nao inclui a pasta `docs/` do projeto principal.
-
 ## Aplicando em uma arvore do Kernel Linux
 
 A partir da raiz de uma arvore compativel do Kernel Linux:
