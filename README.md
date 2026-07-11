@@ -119,14 +119,15 @@ Carregar o modulo:
 sudo insmod drivers/lkcamp/edu_chat.ko capacity=4096
 lsmod | grep edu_chat
 ls -l /dev/edu_chat
+sudo chmod 666 /dev/edu_chat          # permite acesso sem sudo
 sudo dmesg -T | tail -n 20
 ```
 
-Enviar e ler uma mensagem:
+Enviar e ler uma mensagem (agora sem sudo):
 
 ```sh
-printf 'rodrigo: oi pessoal, tudo bem?\n' | sudo tee /dev/edu_chat
-sudo cat /dev/edu_chat
+printf 'rodrigo: oi pessoal, tudo bem?\n' > /dev/edu_chat
+cat /dev/edu_chat
 ```
 
 ## Demonstracao como sala de chat
