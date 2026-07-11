@@ -26,7 +26,7 @@ index 8d4db2241cc2..9fbb43636e0a 100644
  TARGETS += drivers/net/virtio_net
  TARGETS += drivers/platform/x86/intel/ifs
  TARGETS += dt
-+TARGETS += edu_pbuf
++TARGETS += edu_chat
  TARGETS += efivarfs
  TARGETS += exec
  TARGETS += fchmodat2

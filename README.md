@@ -1,207 +1,208 @@
-# `edu_pbuf`: fila educacional de alertas para Linux
+# `edu_chat`: sala de chat local para Linux
 
-`edu_pbuf` é um pseudo device driver educacional para o Kernel Linux. Ele cria
-o character device `/dev/edu_pbuf` e simula uma fila de alertas do sistema para
-aplicações de monitoramento em user space.
+`edu_chat` e um pseudo device driver educacional para o Kernel Linux. Ele cria
+o character device `/dev/edu_chat` e simula uma sala de chat local onde
+processos em user space podem trocar mensagens.
 
-A ideia é simples: um processo publica alertas escrevendo em `/dev/edu_pbuf`, e
-outro processo lê ou espera esses alertas pelo mesmo device.
+A ideia e simples: um processo envia uma mensagem escrevendo em `/dev/edu_chat`,
+e outro processo le a conversa pelo mesmo device.
 
-Tecnicamente, o requisito principal do projeto está no caminho de leitura e
+Tecnicamente, o requisito principal do projeto esta no caminho de leitura e
 escrita:
 
-- `write()` usa `copy_from_user()` para copiar o alerta de user space para um
-  buffer em memória do kernel;
-- `read()` usa `copy_to_user()` para copiar os alertas pendentes do kernel de
+- `write()` usa `copy_from_user()` para copiar a mensagem de user space para um
+  buffer em memoria do kernel;
+- `read()` usa `copy_to_user()` para copiar as mensagens pendentes do kernel de
   volta para user space.
 
-Além do buffer mínimo, o driver demonstra recursos comuns em drivers reais:
+Alem do buffer minimo, o driver demonstra recursos comuns em drivers reais:
 
-- comandos `ioctl()` para consulta e configuração estruturada;
-- atributos `sysfs` para configuração simples e diagnóstico;
-- modo append para acumular alertas;
-- modo clear-on-read para consumir alertas após leitura;
-- leitura bloqueante para um monitor esperar novos alertas;
+- comandos `ioctl()` para consulta e configuracao estruturada;
+- atributos `sysfs` para configuracao simples e diagnostico;
+- modo append para acumular mensagens (historico de chat);
+- modo clear-on-read para consumir mensagens apos leitura;
+- leitura bloqueante para um leitor esperar novas mensagens;
 - suporte a `poll/select`;
-- estatísticas internas de uso.
+- estatisticas internas de uso.
 
 ## O que o driver demonstra
 
-- Carregamento dinâmico de módulo com `insmod`, `lsmod` e `rmmod`.
-- Integração in-tree com `Kconfig` e `Makefile`.
-- Organização em múltiplos arquivos: core, file operations e `sysfs`.
+- Carregamento dinamico de modulo com `insmod`, `lsmod` e `rmmod`.
+- Integracao in-tree com `Kconfig` e `Makefile`.
+- Organizacao em multiplos arquivos: core, file operations e `sysfs`.
 - Registro de character device com `alloc_chrdev_region()` e `cdev`.
-- Criação automática de `/dev/edu_pbuf` com `class_create()` e
+- Criacao automatica de `/dev/edu_chat` com `class_create()` e
   `device_create()`.
-- Transferência segura de dados entre user space e kernel space com
+- Transferencia segura de dados entre user space e kernel space com
   `copy_from_user()` e `copy_to_user()`.
-- Configuração em tempo de execução com `ioctl()`.
+- Configuracao em tempo de execucao com `ioctl()`.
 - Modos append, clear-on-read e blocking-read.
-- Prontidão de leitura/escrita com `poll/select` e `wait_queue`.
-- Atributos `sysfs` para configuração e diagnóstico.
-- Estatísticas internas expostas por `ioctl()` e `sysfs`.
+- Prontidao de leitura/escrita com `poll/select` e `wait_queue`.
+- Atributos `sysfs` para configuracao e diagnostico.
+- Estatisticas internas expostas por `ioctl()` e `sysfs`.
 
-## Organização do módulo
+## Organizacao do modulo
 
-O módulo final continua sendo `edu_pbuf.ko`, mas a implementação foi separada em
+O modulo final continua sendo `edu_chat.ko`, mas a implementacao foi separada em
 arquivos menores:
 
 ```text
-edu_pbuf_core.c      inicialização, saída, cdev, /dev/edu_pbuf e sysfs group
-edu_pbuf_fops.c      open, release, read, write, ioctl e poll
-edu_pbuf_sysfs.c     atributos limit, flags, length, stats e clear
-edu_pbuf_internal.h  estado compartilhado e declarações internas
+edu_chat_core.c      inicializacao, saida, cdev, /dev/edu_chat e sysfs group
+edu_chat_fops.c      open, release, read, write, ioctl e poll
+edu_chat_sysfs.c     atributos limit, flags, length, stats e clear
+edu_chat_internal.h  estado compartilhado e declaracoes internas
 ```
 
-## Arquivos do repositório
+## Arquivos do repositorio
 
 ```text
 drivers/lkcamp/Kconfig
 drivers/lkcamp/Makefile
-drivers/lkcamp/edu_pbuf_core.c
-drivers/lkcamp/edu_pbuf_fops.c
-drivers/lkcamp/edu_pbuf_sysfs.c
-drivers/lkcamp/edu_pbuf_internal.h
-include/uapi/linux/edu_pbuf.h
-tools/testing/selftests/edu_pbuf/Makefile
-tools/testing/selftests/edu_pbuf/edu_pbuf_test.c
+drivers/lkcamp/edu_chat_core.c
+drivers/lkcamp/edu_chat_fops.c
+drivers/lkcamp/edu_chat_sysfs.c
+drivers/lkcamp/edu_chat_internal.h
+include/uapi/linux/edu_chat.h
+tools/testing/selftests/edu_chat/Makefile
+tools/testing/selftests/edu_chat/edu_chat_test.c
 kernel-integration.patch
 ```
 
-Este repositório não inclui a pasta `docs/` do projeto principal.
+Este repositorio nao inclui a pasta `docs/` do projeto principal.
 
-## Aplicando em uma árvore do Kernel Linux
+## Aplicando em uma arvore do Kernel Linux
 
-A partir da raiz de uma árvore compatível do Kernel Linux:
+A partir da raiz de uma arvore compativel do Kernel Linux:
 
 ```sh
 cp -r /path/to/edu-pbuf-device-driver/drivers/lkcamp drivers/
-cp /path/to/edu-pbuf-device-driver/include/uapi/linux/edu_pbuf.h include/uapi/linux/
-mkdir -p tools/testing/selftests/edu_pbuf
-cp /path/to/edu-pbuf-device-driver/tools/testing/selftests/edu_pbuf/* \
-    tools/testing/selftests/edu_pbuf/
+cp /path/to/edu-pbuf-device-driver/include/uapi/linux/edu_chat.h include/uapi/linux/
+mkdir -p tools/testing/selftests/edu_chat
+cp /path/to/edu-pbuf-device-driver/tools/testing/selftests/edu_chat/* \
+    tools/testing/selftests/edu_chat/
 git apply /path/to/edu-pbuf-device-driver/kernel-integration.patch
 ```
 
-## Compilação
+## Compilacao
 
-Para compilar pela própria árvore do kernel:
+Para compilar pela propria arvore do kernel:
 
 ```sh
-./scripts/config -m EDU_PBUF
+./scripts/config -m EDU_CHAT
 make olddefconfig
-make -j"$(nproc)" drivers/lkcamp/edu_pbuf.ko
-make -C tools/testing/selftests/edu_pbuf
+make -j"$(nproc)" drivers/lkcamp/edu_chat.ko
+make -C tools/testing/selftests/edu_chat
 ```
 
-Para compilar contra o kernel que está rodando no host:
+Para compilar contra o kernel que esta rodando no host:
 
 ```sh
 make -C /lib/modules/$(uname -r)/build \
   M=$PWD/drivers/lkcamp \
-  CONFIG_EDU_PBUF=m \
+  CONFIG_EDU_CHAT=m \
   KCFLAGS=-I$PWD/include \
   modules
 
-make -C tools/testing/selftests/edu_pbuf
+make -C tools/testing/selftests/edu_chat
 ```
 
-## Execução
+## Execucao
 
-Use uma VM ou sistema rodando a mesma versão/configuração do kernel usada para
-compilar o módulo. Se o `vermagic` do módulo não corresponder ao `uname -r`, o
+Use uma VM ou sistema rodando a mesma versao/configuracao do kernel usada para
+compilar o modulo. Se o `vermagic` do modulo nao corresponder ao `uname -r`, o
 `insmod` pode falhar com `Invalid module format`.
 
-Carregar o módulo:
+Carregar o modulo:
 
 ```sh
-sudo insmod drivers/lkcamp/edu_pbuf.ko capacity=4096
-lsmod | grep edu_pbuf
-ls -l /dev/edu_pbuf
+sudo insmod drivers/lkcamp/edu_chat.ko capacity=4096
+lsmod | grep edu_chat
+ls -l /dev/edu_chat
 sudo dmesg -T | tail -n 20
 ```
 
-Publicar e ler um alerta:
+Enviar e ler uma mensagem:
 
 ```sh
-printf 'ALERTA temperatura=82 origem=demo severidade=alta\n' | sudo tee /dev/edu_pbuf
-sudo cat /dev/edu_pbuf
+printf 'rodrigo: oi pessoal, tudo bem?\n' | sudo tee /dev/edu_chat
+sudo cat /dev/edu_chat
 ```
 
-## Demonstração como fila de alertas
+## Demonstracao como sala de chat
 
-Ativar append para acumular alertas:
+Ativar append para acumular mensagens:
 
 ```sh
-echo 0x1 | sudo tee /sys/class/edu_pbuf/edu_pbuf/flags
-printf 'ALERTA cpu=91 origem=append\n' | sudo tee /dev/edu_pbuf
-printf 'ALERTA disco=88 origem=append\n' | sudo tee /dev/edu_pbuf
-sudo cat /dev/edu_pbuf
+echo 0x1 | sudo tee /sys/class/edu_chat/edu_chat/flags
+printf 'rodrigo: bom dia!\n' | sudo tee /dev/edu_chat
+printf 'ana: bom dia rodrigo!\n' | sudo tee /dev/edu_chat
+sudo cat /dev/edu_chat
 ```
 
-Ativar leitura bloqueante e limpeza após leitura:
+Ativar leitura bloqueante e limpeza apos leitura:
 
 ```sh
-echo 4096 | sudo tee /sys/class/edu_pbuf/edu_pbuf/limit >/dev/null
-echo 0x6 | sudo tee /sys/class/edu_pbuf/edu_pbuf/flags >/dev/null
-echo clear | sudo tee /sys/class/edu_pbuf/edu_pbuf/clear >/dev/null
-cat /sys/class/edu_pbuf/edu_pbuf/limit
-cat /sys/class/edu_pbuf/edu_pbuf/flags
-cat /sys/class/edu_pbuf/edu_pbuf/length
+echo 4096 | sudo tee /sys/class/edu_chat/edu_chat/limit >/dev/null
+echo 0x6 | sudo tee /sys/class/edu_chat/edu_chat/flags >/dev/null
+echo clear | sudo tee /sys/class/edu_chat/edu_chat/clear >/dev/null
+cat /sys/class/edu_chat/edu_chat/limit
+cat /sys/class/edu_chat/edu_chat/flags
+cat /sys/class/edu_chat/edu_chat/length
 ```
 
-Em um terminal, deixar um monitor esperando alertas:
+Em um terminal, deixar um leitor esperando mensagens:
 
 ```sh
-sudo cat /dev/edu_pbuf
+sudo cat /dev/edu_chat
 ```
 
-Esse comando deve ficar parado até outro terminal publicar um alerta.
+Esse comando deve ficar parado ate outro terminal enviar uma mensagem.
 
-Em outro terminal, publicar alertas:
+Em outro terminal, enviar mensagens:
 
 ```sh
-printf 'ALERTA cpu=95 origem=terminal2 severidade=alta\n' | sudo tee /dev/edu_pbuf >/dev/null
-printf 'ALERTA memoria=87 origem=terminal2 severidade=media\n' | sudo tee /dev/edu_pbuf >/dev/null
+printf 'rodrigo: oi ana, tudo bem?\n' | sudo tee /dev/edu_chat >/dev/null
+printf 'ana: oi rodrigo! tudo otimo\n' | sudo tee /dev/edu_chat >/dev/null
 ```
 
-O terminal do monitor acorda quando cada alerta chega. Use `Ctrl+C` para parar o
-monitor.
+O terminal do leitor acorda quando cada mensagem chega. Use `Ctrl+C` para parar
+o leitor.
 
-Se o mesmo alerta aparecer repetido muitas vezes, pare o monitor com `Ctrl+C` e
-confirme se `flags` está em `0x6`. Esse valor ativa `CLEAR_ON_READ` e
-`BLOCKING_READ`; sem ele, o monitor pode reler o mesmo alerta em loop.
+Se a mesma mensagem aparecer repetida muitas vezes, pare o leitor com `Ctrl+C` e
+confirme se `flags` esta em `0x6`. Esse valor ativa `CLEAR_ON_READ` e
+`BLOCKING_READ`; sem ele, o leitor pode reler a mesma mensagem em loop.
 
 ## Teste com `ioctl()`
 
 ```sh
-sudo tools/testing/selftests/edu_pbuf/edu_pbuf_test /dev/edu_pbuf
+sudo tools/testing/selftests/edu_chat/edu_chat_test /dev/edu_chat
 ```
 
-O selftest consulta informações, limpa a fila, ativa flags, escreve alertas,
-usa `poll()`, lê os dados, altera o limite lógico e consulta estatísticas.
+O selftest consulta informacoes, limpa o historico, ativa flags, escreve
+mensagens, usa `poll()`, le os dados, altera o limite logico e consulta
+estatisticas.
 
-## Inspeção por `sysfs`
+## Inspecao por `sysfs`
 
 ```sh
-ls -l /sys/class/edu_pbuf/edu_pbuf/
-cat /sys/class/edu_pbuf/edu_pbuf/limit
-cat /sys/class/edu_pbuf/edu_pbuf/flags
-cat /sys/class/edu_pbuf/edu_pbuf/length
-cat /sys/class/edu_pbuf/edu_pbuf/stats
-echo clear | sudo tee /sys/class/edu_pbuf/edu_pbuf/clear
+ls -l /sys/class/edu_chat/edu_chat/
+cat /sys/class/edu_chat/edu_chat/limit
+cat /sys/class/edu_chat/edu_chat/flags
+cat /sys/class/edu_chat/edu_chat/length
+cat /sys/class/edu_chat/edu_chat/stats
+echo clear | sudo tee /sys/class/edu_chat/edu_chat/clear
 ```
 
-## Remoção
+## Remocao
 
 ```sh
-sudo rmmod edu_pbuf
+sudo rmmod edu_chat
 sudo dmesg -T | tail -n 20
 ```
 
 ## Resumo
 
-Para o usuário, `edu_pbuf` é um dispositivo virtual em `/dev/edu_pbuf` que
-funciona como uma fila educacional de alertas. Ele permite publicar alertas,
-armazená-los em memória do kernel, recuperá-los por leitura, esperar novos
-eventos e configurar o comportamento por `ioctl()` ou `sysfs`.
+Para o usuario, `edu_chat` e um dispositivo virtual em `/dev/edu_chat` que
+funciona como uma sala de chat local entre processos. Ele permite enviar
+mensagens, armazena-las em memoria do kernel, recupera-las por leitura, esperar
+novas mensagens e configurar o comportamento por `ioctl()` ou `sysfs`.

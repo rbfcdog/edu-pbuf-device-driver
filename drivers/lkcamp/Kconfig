@@ -2,20 +2,22 @@
 
 menu "LKCAMP educational drivers"
 
-config EDU_PBUF
-	tristate "Educational system alert queue character driver"
+config EDU_CHAT
+	tristate "Educational local chat room character driver"
 	default m
 	help
-	  Builds /dev/edu_pbuf, an educational pseudo character driver
+	  Builds /dev/edu_chat, an educational pseudo character driver
 	  based on the LKCAMP device-driver tutorial.
 
-	  The driver simulates a small system alert queue. User space can
-	  publish alerts by writing to /dev/edu_pbuf, while another process
-	  can read pending alerts, wait for new alerts through blocking read
-	  or poll/select, and configure queue behavior through ioctl or
-	  sysfs attributes.
+	  The driver simulates a local chat room where processes can
+	  exchange messages by writing to and reading from
+	  /dev/edu_chat. User space processes send chat messages via
+	  write(), and other processes can read the conversation,
+	  wait for new messages through blocking read or poll/select,
+	  and configure chat behavior through ioctl or sysfs
+	  attributes.
 
 	  To build it as a module, choose M. The module will be called
-	  edu_pbuf.
+	  edu_chat.
 
 endmenu

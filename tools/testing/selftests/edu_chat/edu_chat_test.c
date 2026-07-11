@@ -9,7 +9,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-#include <linux/edu_pbuf.h>
+#include <linux/edu_chat.h>
 
 static void die(const char *msg)
 {
@@ -17,15 +17,15 @@ static void die(const char *msg)
 	exit(EXIT_FAILURE);
 }
 
-static void get_info(int fd, struct edu_pbuf_info *info)
+static void get_info(int fd, struct edu_chat_info *info)
 {
-	if (ioctl(fd, EDU_PBUF_IOC_GET_INFO, info) < 0)
-		die("ioctl EDU_PBUF_IOC_GET_INFO");
+	if (ioctl(fd, EDU_CHAT_IOC_GET_INFO, info) < 0)
+		die("ioctl EDU_CHAT_IOC_GET_INFO");
 }
 
 static void print_info(int fd, const char *label)
 {
-	struct edu_pbuf_info info;
+	struct edu_chat_info info;
 
 	get_info(fd, &info);
 
@@ -35,10 +35,10 @@ static void print_info(int fd, const char *label)
 
 static void print_stats(int fd, const char *label)
 {
-	struct edu_pbuf_stats stats;
+	struct edu_chat_stats stats;
 
-	if (ioctl(fd, EDU_PBUF_IOC_GET_STATS, &stats) < 0)
-		die("ioctl EDU_PBUF_IOC_GET_STATS");
+	if (ioctl(fd, EDU_CHAT_IOC_GET_STATS, &stats) < 0)
+		die("ioctl EDU_CHAT_IOC_GET_STATS");
 
 	printf("%s: opens=%llu closes=%llu active=%u reads=%llu writes=%llu ",
 	       label, stats.opens, stats.closes, stats.active_handles,
@@ -101,7 +101,7 @@ static void poll_once(int fd, const char *label)
 
 static void test_nonblocking_empty_read(const char *path)
 {
-	__u32 flags = EDU_PBUF_F_BLOCKING_READ;
+	__u32 flags = EDU_CHAT_F_BLOCKING_READ;
 	char byte;
 	int fd;
 
@@ -109,8 +109,8 @@ static void test_nonblocking_empty_read(const char *path)
 	if (fd < 0)
 		die("open nonblocking");
 
-	if (ioctl(fd, EDU_PBUF_IOC_SET_FLAGS, &flags) < 0)
-		die("ioctl EDU_PBUF_IOC_SET_FLAGS blocking");
+	if (ioctl(fd, EDU_CHAT_IOC_SET_FLAGS, &flags) < 0)
+		die("ioctl EDU_CHAT_IOC_SET_FLAGS blocking");
 
 	if (read(fd, &byte, sizeof(byte)) >= 0 || errno != EAGAIN) {
 		fprintf(stderr, "expected EAGAIN from empty nonblocking read\n");
@@ -119,23 +119,23 @@ static void test_nonblocking_empty_read(const char *path)
 	printf("nonblocking empty read: got EAGAIN as expected\n");
 
 	flags = 0;
-	if (ioctl(fd, EDU_PBUF_IOC_SET_FLAGS, &flags) < 0)
-		die("ioctl EDU_PBUF_IOC_SET_FLAGS reset");
+	if (ioctl(fd, EDU_CHAT_IOC_SET_FLAGS, &flags) < 0)
+		die("ioctl EDU_CHAT_IOC_SET_FLAGS reset");
 
 	close(fd);
 }
 
 int main(int argc, char **argv)
 {
-	const char *path = argc > 1 ? argv[1] : "/dev/edu_pbuf";
+	const char *path = argc > 1 ? argv[1] : "/dev/edu_chat";
 	const char *msg = argc > 2 ? argv[2] :
-		"ALERTA origem=selftest severidade=media mensagem=cpu_alta\n";
+		"rodrigo: oi pessoal, tudo bem?\n";
 	const char *suffix =
-		"ALERTA origem=selftest severidade=baixa mensagem=disco_ok\n";
-	struct edu_pbuf_info initial_info;
+		"ana: oi rodrigo! tranquilo e voce?\n";
+	struct edu_chat_info initial_info;
 	__u32 restore_limit;
 	__u32 new_limit = 32;
-	__u32 flags = EDU_PBUF_F_APPEND | EDU_PBUF_F_CLEAR_ON_READ;
+	__u32 flags = EDU_CHAT_F_APPEND | EDU_CHAT_F_CLEAR_ON_READ;
 	int fd;
 
 	fd = open(path, O_RDWR);
@@ -145,16 +145,16 @@ int main(int argc, char **argv)
 	get_info(fd, &initial_info);
 	restore_limit = initial_info.capacity;
 
-	if (ioctl(fd, EDU_PBUF_IOC_SET_LIMIT, &restore_limit) < 0)
-		die("ioctl EDU_PBUF_IOC_SET_LIMIT initial restore");
+	if (ioctl(fd, EDU_CHAT_IOC_SET_LIMIT, &restore_limit) < 0)
+		die("ioctl EDU_CHAT_IOC_SET_LIMIT initial restore");
 
-	if (ioctl(fd, EDU_PBUF_IOC_CLEAR) < 0)
-		die("ioctl EDU_PBUF_IOC_CLEAR initial");
+	if (ioctl(fd, EDU_CHAT_IOC_CLEAR) < 0)
+		die("ioctl EDU_CHAT_IOC_CLEAR initial");
 	print_info(fd, "initial");
 	print_stats(fd, "initial stats");
 
-	if (ioctl(fd, EDU_PBUF_IOC_SET_FLAGS, &flags) < 0)
-		die("ioctl EDU_PBUF_IOC_SET_FLAGS append");
+	if (ioctl(fd, EDU_CHAT_IOC_SET_FLAGS, &flags) < 0)
+		die("ioctl EDU_CHAT_IOC_SET_FLAGS append");
 	print_info(fd, "after set append+clear_on_read");
 
 	write_all(fd, msg);
@@ -170,17 +170,17 @@ int main(int argc, char **argv)
 	read_once(fd);
 	print_info(fd, "after read with clear_on_read");
 
-	if (ioctl(fd, EDU_PBUF_IOC_SET_LIMIT, &new_limit) < 0)
-		die("ioctl EDU_PBUF_IOC_SET_LIMIT");
+	if (ioctl(fd, EDU_CHAT_IOC_SET_LIMIT, &new_limit) < 0)
+		die("ioctl EDU_CHAT_IOC_SET_LIMIT");
 	print_info(fd, "after set limit");
 
 	test_nonblocking_empty_read(path);
 	print_stats(fd, "final stats");
 
-	if (ioctl(fd, EDU_PBUF_IOC_CLEAR) < 0)
-		die("ioctl EDU_PBUF_IOC_CLEAR");
-	if (ioctl(fd, EDU_PBUF_IOC_SET_LIMIT, &restore_limit) < 0)
-		die("ioctl EDU_PBUF_IOC_SET_LIMIT restore");
+	if (ioctl(fd, EDU_CHAT_IOC_CLEAR) < 0)
+		die("ioctl EDU_CHAT_IOC_CLEAR");
+	if (ioctl(fd, EDU_CHAT_IOC_SET_LIMIT, &restore_limit) < 0)
+		die("ioctl EDU_CHAT_IOC_SET_LIMIT restore");
 	print_info(fd, "after clear");
 
 	close(fd);
