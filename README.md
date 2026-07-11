@@ -1,8 +1,14 @@
 # edu_pbuf pseudo device driver
 
 `edu_pbuf` is an educational Linux kernel pseudo character device driver. It
-creates `/dev/edu_pbuf` and stores the latest byte sequence written by user
-space in a kernel buffer.
+creates `/dev/edu_pbuf` and simulates a small message channel between user space
+and kernel space. Data written to the device is copied into a kernel buffer with
+`copy_from_user()`, and later returned to user space with `copy_to_user()`.
+
+Beyond the minimal buffer requirement, the driver demonstrates practical driver
+interfaces: `ioctl()` for structured commands, `sysfs` for simple configuration
+and diagnostics, `poll/select` readiness, mode flags, blocking-read behavior and
+usage statistics.
 
 The driver demonstrates:
 
@@ -18,6 +24,18 @@ The driver demonstrates:
 - `poll/select` readiness with a wait queue;
 - simple `sysfs` attributes for configuration and diagnostics;
 - internal usage statistics exposed through `ioctl()` and `sysfs`.
+
+## Module layout
+
+The final module is still `edu_pbuf.ko`, but the implementation is split into
+focused files:
+
+```text
+edu_pbuf_core.c      module init/exit, cdev registration, /dev node, sysfs group
+edu_pbuf_fops.c      open, release, read, write, ioctl, poll
+edu_pbuf_sysfs.c     limit, flags, length, stats, clear attributes
+edu_pbuf_internal.h  shared internal state and declarations
+```
 
 ## Files
 
@@ -81,7 +99,7 @@ the module. If `vermagic` does not match `uname -r`, `insmod` can fail.
 sudo insmod drivers/lkcamp/edu_pbuf.ko capacity=4096
 lsmod | grep edu_pbuf
 ls -l /dev/edu_pbuf
-dmesg -T | tail -n 20
+sudo dmesg -T | tail -n 20
 ```
 
 Basic read/write:
@@ -121,5 +139,5 @@ Unload:
 
 ```sh
 sudo rmmod edu_pbuf
-dmesg -T | tail -n 20
+sudo dmesg -T | tail -n 20
 ```
