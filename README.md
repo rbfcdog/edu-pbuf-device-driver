@@ -61,12 +61,12 @@ kernel-integration.patch
 A partir da raiz de uma árvore compatível do Kernel Linux:
 
 ```sh
-cp -r /path/to/edu-pbuf-device-driver/drivers/lkcamp drivers/
-cp /path/to/edu-pbuf-device-driver/include/uapi/linux/edu_chat.h include/uapi/linux/
+cp -r /path/to/edu-chat-device-driver/drivers/lkcamp drivers/
+cp /path/to/edu-chat-device-driver/include/uapi/linux/edu_chat.h include/uapi/linux/
 mkdir -p tools/testing/selftests/edu_chat
-cp /path/to/edu-pbuf-device-driver/tools/testing/selftests/edu_chat/* \
+cp /path/to/edu-chat-device-driver/tools/testing/selftests/edu_chat/* \
     tools/testing/selftests/edu_chat/
-git apply /path/to/edu-pbuf-device-driver/kernel-integration.patch
+git apply /path/to/edu-chat-device-driver/kernel-integration.patch
 ```
 
 ## Compilação
