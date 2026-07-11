@@ -30,6 +30,7 @@ static struct cdev edu_pbuf_cdev;
 static struct class *edu_pbuf_class;
 static struct device *edu_pbuf_device;
 
+/* Serializes buffer content, length and runtime limit. */
 static DEFINE_MUTEX(edu_pbuf_lock);
 static char *edu_pbuf_data;
 static size_t edu_pbuf_len;
@@ -56,6 +57,7 @@ static ssize_t edu_pbuf_read(struct file *file, char __user *buf,
 	available = edu_pbuf_len - pos;
 	to_copy = min(count, available);
 
+	/* User pointers must go through uaccess helpers. */
 	if (copy_to_user(buf, edu_pbuf_data + pos, to_copy)) {
 		ret = -EFAULT;
 		goto out_unlock;
@@ -84,6 +86,7 @@ static ssize_t edu_pbuf_write(struct file *file, const char __user *buf,
 
 	memset(edu_pbuf_data, 0, capacity);
 
+	/* User pointers must go through uaccess helpers. */
 	if (copy_from_user(edu_pbuf_data, buf, count)) {
 		ret = -EFAULT;
 		goto out_unlock;
@@ -105,6 +108,7 @@ static long edu_pbuf_ioctl(struct file *file, unsigned int cmd,
 	struct edu_pbuf_info info;
 	__u32 new_limit;
 
+	/* Keep command numbers and payloads in sync with the UAPI header. */
 	switch (cmd) {
 	case EDU_PBUF_IOC_GET_INFO:
 		memset(&info, 0, sizeof(info));
@@ -183,6 +187,7 @@ static int __init edu_pbuf_init(void)
 		goto err_del_cdev;
 	}
 
+	/* Create /dev/edu_pbuf automatically for the classroom demo. */
 	edu_pbuf_device = device_create(edu_pbuf_class, NULL, edu_pbuf_devt,
 					NULL, EDU_PBUF_NAME);
 	if (IS_ERR(edu_pbuf_device)) {
