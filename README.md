@@ -37,6 +37,8 @@ Alem do buffer minimo, o driver demonstra recursos comuns em drivers reais:
   `copy_from_user()` e `copy_to_user()`.
 - Configuracao em tempo de execucao com `ioctl()`.
 - Modos append, clear-on-read e blocking-read.
+- Chat bidirecional com `edu_chat_client.c`: dois processos leem e escrevem
+  simultaneamente via `poll()`.
 - Prontidao de leitura/escrita com `poll/select` e `wait_queue`.
 - Atributos `sysfs` para configuracao e diagnostico.
 - Estatisticas internas expostas por `ioctl()` e `sysfs`.
@@ -65,6 +67,7 @@ drivers/lkcamp/edu_chat_internal.h
 include/uapi/linux/edu_chat.h
 tools/testing/selftests/edu_chat/Makefile
 tools/testing/selftests/edu_chat/edu_chat_test.c
+tools/testing/selftests/edu_chat/edu_chat_client.c
 kernel-integration.patch
 ```
 
@@ -139,38 +142,34 @@ printf 'ana: bom dia rodrigo!\n' | sudo tee /dev/edu_chat
 sudo cat /dev/edu_chat
 ```
 
-Ativar leitura bloqueante e limpeza apos leitura:
+## Chat bidirecional com o cliente
+
+O repositorio inclui `edu_chat_client.c`, um cliente de chat que suporta
+leitura e escrita simultaneas. Diferente do `cat` (so le) e `tee` (so escreve),
+o cliente usa `poll()` para esperar eventos do teclado e do device ao mesmo
+tempo, permitindo que dois terminais conversem em tempo real.
+
+Antes de abrir os clientes, ative apenas APPEND (flag 0x1):
 
 ```sh
-echo 4096 | sudo tee /sys/class/edu_chat/edu_chat/limit >/dev/null
-echo 0x6 | sudo tee /sys/class/edu_chat/edu_chat/flags >/dev/null
-echo clear | sudo tee /sys/class/edu_chat/edu_chat/clear >/dev/null
-cat /sys/class/edu_chat/edu_chat/limit
-cat /sys/class/edu_chat/edu_chat/flags
-cat /sys/class/edu_chat/edu_chat/length
+echo 0x1 | sudo tee /sys/class/edu_chat/edu_chat/flags
+echo clear | sudo tee /sys/class/edu_chat/edu_chat/clear
 ```
 
-Em um terminal, deixar um leitor esperando mensagens:
+Terminal 1:
 
 ```sh
-sudo cat /dev/edu_chat
+./tools/testing/selftests/edu_chat/edu_chat_client /dev/edu_chat rodrigo
 ```
 
-Esse comando deve ficar parado ate outro terminal enviar uma mensagem.
-
-Em outro terminal, enviar mensagens:
+Terminal 2:
 
 ```sh
-printf 'rodrigo: oi ana, tudo bem?\n' | sudo tee /dev/edu_chat >/dev/null
-printf 'ana: oi rodrigo! tudo otimo\n' | sudo tee /dev/edu_chat >/dev/null
+./tools/testing/selftests/edu_chat/edu_chat_client /dev/edu_chat ana
 ```
 
-O terminal do leitor acorda quando cada mensagem chega. Use `Ctrl+C` para parar
-o leitor.
-
-Se a mesma mensagem aparecer repetida muitas vezes, pare o leitor com `Ctrl+C` e
-confirme se `flags` esta em `0x6`. Esse valor ativa `CLEAR_ON_READ` e
-`BLOCKING_READ`; sem ele, o leitor pode reler a mesma mensagem em loop.
+Agora ambos os terminais leem e escrevem. O que for digitado em um aparece no
+outro com o prefixo do nickname. Ctrl+C sai em cada terminal.
 
 ## Teste com `ioctl()`
 
