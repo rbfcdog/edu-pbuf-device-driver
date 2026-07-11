@@ -143,7 +143,10 @@ int main(int argc, char **argv)
 		die("open");
 
 	get_info(fd, &initial_info);
-	restore_limit = initial_info.limit;
+	restore_limit = initial_info.capacity;
+
+	if (ioctl(fd, EDU_PBUF_IOC_SET_LIMIT, &restore_limit) < 0)
+		die("ioctl EDU_PBUF_IOC_SET_LIMIT initial restore");
 
 	if (ioctl(fd, EDU_PBUF_IOC_CLEAR) < 0)
 		die("ioctl EDU_PBUF_IOC_CLEAR initial");
