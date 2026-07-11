@@ -142,8 +142,8 @@ sudo cat /dev/edu_pbuf
 Ativar leitura bloqueante e limpeza após leitura:
 
 ```sh
-echo 0x6 | sudo tee /sys/class/edu_pbuf/edu_pbuf/flags
-echo clear | sudo tee /sys/class/edu_pbuf/edu_pbuf/clear
+echo 0x6 | sudo tee /sys/class/edu_pbuf/edu_pbuf/flags >/dev/null
+echo clear | sudo tee /sys/class/edu_pbuf/edu_pbuf/clear >/dev/null
 cat /sys/class/edu_pbuf/edu_pbuf/flags
 cat /sys/class/edu_pbuf/edu_pbuf/length
 ```
@@ -153,6 +153,8 @@ Em um terminal, deixar um monitor esperando alertas:
 ```sh
 sudo cat /dev/edu_pbuf
 ```
+
+Esse comando deve ficar parado até outro terminal publicar um alerta.
 
 Em outro terminal, publicar alertas:
 
