@@ -1,61 +1,31 @@
-# `edu_chat`: sala de chat local para Linux
+# `edu_chat`: chat educacional em um pseudo device driver Linux
 
-`edu_chat` e um pseudo device driver educacional para o Kernel Linux. Ele cria
-o character device `/dev/edu_chat` e simula uma sala de chat local onde
-processos em user space podem trocar mensagens.
+`edu_chat` é um pseudo device driver educacional para o Kernel Linux. Ele cria
+o character device `/dev/edu_chat` e simula uma sala de chat local entre
+processos em user space.
 
-A ideia e simples: um processo envia uma mensagem escrevendo em `/dev/edu_chat`,
-e outro processo le a conversa pelo mesmo device.
+A ideia é simples: um processo escreve uma mensagem em `/dev/edu_chat`, o
+driver copia essa mensagem para um buffer em memória do kernel com
+`copy_from_user()`, e outros processos recuperam as mensagens com `read()`,
+usando `copy_to_user()` no caminho de volta.
 
-Tecnicamente, o requisito principal do projeto esta no caminho de leitura e
-escrita:
+Além do requisito mínimo de buffer, o driver demonstra recursos usados em
+drivers reais:
 
-- `write()` usa `copy_from_user()` para copiar a mensagem de user space para um
-  buffer em memoria do kernel;
-- `read()` usa `copy_to_user()` para copiar as mensagens pendentes do kernel de
-  volta para user space.
+- comandos `ioctl()` para consulta e configuração estruturada;
+- atributos `sysfs` para configuração simples e diagnóstico;
+- modo append para acumular mensagens como histórico de conversa;
+- modo clear-on-read para consumir mensagens após leitura;
+- leitura bloqueante para esperar novas mensagens;
+- suporte a `poll()`/`select()`;
+- estatísticas internas de uso;
+- cliente interativo em C para troca de mensagens entre dois terminais.
 
-Alem do buffer minimo, o driver demonstra recursos comuns em drivers reais:
+Este repositório contém apenas o código do driver, a UAPI, os programas de
+teste e o patch de integração. A pasta `docs/` do projeto principal não foi
+incluída.
 
-- comandos `ioctl()` para consulta e configuracao estruturada;
-- atributos `sysfs` para configuracao simples e diagnostico;
-- modo append para acumular mensagens (historico de chat);
-- modo clear-on-read para consumir mensagens apos leitura;
-- leitura bloqueante para um leitor esperar novas mensagens;
-- suporte a `poll/select`;
-- estatisticas internas de uso.
-
-## O que o driver demonstra
-
-- Carregamento dinamico de modulo com `insmod`, `lsmod` e `rmmod`.
-- Integracao in-tree com `Kconfig` e `Makefile`.
-- Organizacao em multiplos arquivos: core, file operations e `sysfs`.
-- Registro de character device com `alloc_chrdev_region()` e `cdev`.
-- Criacao automatica de `/dev/edu_chat` com `class_create()` e
-  `device_create()`.
-- Transferencia segura de dados entre user space e kernel space com
-  `copy_from_user()` e `copy_to_user()`.
-- Configuracao em tempo de execucao com `ioctl()`.
-- Modos append, clear-on-read e blocking-read.
-- Chat bidirecional com `edu_chat_client.c`: dois processos leem e escrevem
-  simultaneamente via `poll()`.
-- Prontidao de leitura/escrita com `poll/select` e `wait_queue`.
-- Atributos `sysfs` para configuracao e diagnostico.
-- Estatisticas internas expostas por `ioctl()` e `sysfs`.
-
-## Organizacao do modulo
-
-O modulo final continua sendo `edu_chat.ko`, mas a implementacao foi separada em
-arquivos menores:
-
-```text
-edu_chat_core.c      inicializacao, saida, cdev, /dev/edu_chat e sysfs group
-edu_chat_fops.c      open, release, read, write, ioctl e poll
-edu_chat_sysfs.c     atributos limit, flags, length, stats e clear
-edu_chat_internal.h  estado compartilhado e declaracoes internas
-```
-
-## Arquivos do repositorio
+## Arquivos
 
 ```text
 drivers/lkcamp/Kconfig
@@ -71,9 +41,24 @@ tools/testing/selftests/edu_chat/edu_chat_client.c
 kernel-integration.patch
 ```
 
-## Aplicando em uma arvore do Kernel Linux
+## O que cada parte faz
 
-A partir da raiz de uma arvore compativel do Kernel Linux:
+- `edu_chat_core.c`: inicialização, saída, alocação do buffer, registro do
+  `cdev`, criação de `/dev/edu_chat` e integração com `sysfs`.
+- `edu_chat_fops.c`: implementação de `open`, `release`, `read`, `write`,
+  `poll` e `ioctl`.
+- `edu_chat_sysfs.c`: atributos `limit`, `flags`, `length`, `stats` e `clear`.
+- `edu_chat_internal.h`: declarações internas compartilhadas entre os arquivos
+  do módulo.
+- `edu_chat.h`: header UAPI usado pelo kernel e pelos programas de user space.
+- `edu_chat_test.c`: selftest que valida leitura, escrita, `ioctl`, `poll`,
+  flags e estatísticas.
+- `edu_chat_client.c`: cliente interativo que transforma o driver em uma sala
+  de chat entre dois terminais.
+
+## Aplicando em uma árvore do Kernel Linux
+
+A partir da raiz de uma árvore compatível do Kernel Linux:
 
 ```sh
 cp -r /path/to/edu-pbuf-device-driver/drivers/lkcamp drivers/
@@ -84,9 +69,9 @@ cp /path/to/edu-pbuf-device-driver/tools/testing/selftests/edu_chat/* \
 git apply /path/to/edu-pbuf-device-driver/kernel-integration.patch
 ```
 
-## Compilacao
+## Compilação
 
-Para compilar pela propria arvore do kernel:
+Para compilar pela própria árvore do kernel:
 
 ```sh
 ./scripts/config -m EDU_CHAT
@@ -95,7 +80,7 @@ make -j"$(nproc)" drivers/lkcamp/edu_chat.ko
 make -C tools/testing/selftests/edu_chat
 ```
 
-Para compilar contra o kernel que esta rodando no host:
+Para compilar contra o kernel que está rodando no host:
 
 ```sh
 make -C /lib/modules/$(uname -r)/build \
@@ -107,52 +92,41 @@ make -C /lib/modules/$(uname -r)/build \
 make -C tools/testing/selftests/edu_chat
 ```
 
-## Execucao
+## Execução rápida
 
-Use uma VM ou sistema rodando a mesma versao/configuracao do kernel usada para
-compilar o modulo. Se o `vermagic` do modulo nao corresponder ao `uname -r`, o
+Use uma VM ou sistema rodando a mesma versão/configuração do kernel usada para
+compilar o módulo. Se o `vermagic` do módulo não corresponder ao `uname -r`, o
 `insmod` pode falhar com `Invalid module format`.
 
-Carregar o modulo:
-
 ```sh
+sudo rmmod edu_chat 2>/dev/null || true
+
 sudo insmod drivers/lkcamp/edu_chat.ko capacity=4096
+
 lsmod | grep edu_chat
 ls -l /dev/edu_chat
-sudo chmod 666 /dev/edu_chat          # permite acesso sem sudo
 sudo dmesg -T | tail -n 20
 ```
 
-Enviar e ler uma mensagem (agora sem sudo):
+O driver configura o device node como `0666`, então os exemplos abaixo podem
+ser executados sem `sudo` depois do `insmod`.
+
+Teste uma escrita e uma leitura simples:
 
 ```sh
-printf 'rodrigo: oi pessoal, tudo bem?\n' > /dev/edu_chat
+printf 'rodrigo: oi pessoal\n' > /dev/edu_chat
 cat /dev/edu_chat
 ```
 
-## Demonstracao como sala de chat
+## Chat entre dois terminais
 
-Ativar append para acumular mensagens:
-
-```sh
-echo 0x1 | sudo tee /sys/class/edu_chat/edu_chat/flags
-printf 'rodrigo: bom dia!\n' | sudo tee /dev/edu_chat
-printf 'ana: bom dia rodrigo!\n' | sudo tee /dev/edu_chat
-sudo cat /dev/edu_chat
-```
-
-## Chat bidirecional com o cliente
-
-O repositorio inclui `edu_chat_client.c`, um cliente de chat que suporta
-leitura e escrita simultaneas. Diferente do `cat` (so le) e `tee` (so escreve),
-o cliente usa `poll()` para esperar eventos do teclado e do device ao mesmo
-tempo, permitindo que dois terminais conversem em tempo real.
-
-Antes de abrir os clientes, ative apenas APPEND (flag 0x1):
+Antes de abrir os clientes, limpe o histórico e deixe apenas o modo append
+ativo:
 
 ```sh
-echo 0x1 | sudo tee /sys/class/edu_chat/edu_chat/flags
-echo clear | sudo tee /sys/class/edu_chat/edu_chat/clear
+echo 4096 | sudo tee /sys/class/edu_chat/edu_chat/limit >/dev/null
+echo 0x1 | sudo tee /sys/class/edu_chat/edu_chat/flags >/dev/null
+echo clear | sudo tee /sys/class/edu_chat/edu_chat/clear >/dev/null
 ```
 
 Terminal 1:
@@ -167,8 +141,24 @@ Terminal 2:
 ./tools/testing/selftests/edu_chat/edu_chat_client /dev/edu_chat ana
 ```
 
-Agora ambos os terminais leem e escrevem. O que for digitado em um aparece no
-outro com o prefixo do nickname. Ctrl+C sai em cada terminal.
+O cliente abre `/dev/edu_chat` com `O_RDWR | O_NONBLOCK`, ativa append por
+`ioctl()` e usa `poll()` para esperar ao mesmo tempo pelo teclado e pelo device.
+Ao entrar, ele descarta silenciosamente o histórico antigo; depois disso, mostra
+somente mensagens novas. No driver, escritas em modo append não resetam o cursor
+de leitura do próprio descritor, evitando repetir a conversa inteira a cada
+mensagem enviada.
+
+Exemplo esperado:
+
+```text
+Terminal rodrigo:
+rodrigo: ola
+ana: oieee
+
+Terminal ana:
+ana: oieee
+rodrigo: tudo bem?
+```
 
 ## Teste com `ioctl()`
 
@@ -176,11 +166,10 @@ outro com o prefixo do nickname. Ctrl+C sai em cada terminal.
 sudo tools/testing/selftests/edu_chat/edu_chat_test /dev/edu_chat
 ```
 
-O selftest consulta informacoes, limpa o historico, ativa flags, escreve
-mensagens, usa `poll()`, le os dados, altera o limite logico e consulta
-estatisticas.
+O selftest consulta informações, limpa o chat, ativa flags, escreve mensagens,
+usa `poll()`, lê dados, altera o limite lógico e consulta estatísticas.
 
-## Inspecao por `sysfs`
+## Inspeção por `sysfs`
 
 ```sh
 ls -l /sys/class/edu_chat/edu_chat/
@@ -191,16 +180,27 @@ cat /sys/class/edu_chat/edu_chat/stats
 echo clear | sudo tee /sys/class/edu_chat/edu_chat/clear
 ```
 
-## Remocao
+## Remoção
 
 ```sh
 sudo rmmod edu_chat
 sudo dmesg -T | tail -n 20
 ```
 
+Se aparecer `Module edu_chat is in use`, feche qualquer `cat /dev/edu_chat` ou
+`edu_chat_client` aberto em outro terminal:
+
+```sh
+ps -eo pid,ppid,stat,comm,args | grep -E 'cat /dev/edu_chat|edu_chat_client' | grep -v grep
+sudo pkill -f 'cat /dev/edu_chat'
+sudo pkill -f 'edu_chat_client'
+sudo rmmod edu_chat
+```
+
 ## Resumo
 
-Para o usuario, `edu_chat` e um dispositivo virtual em `/dev/edu_chat` que
-funciona como uma sala de chat local entre processos. Ele permite enviar
-mensagens, armazena-las em memoria do kernel, recupera-las por leitura, esperar
-novas mensagens e configurar o comportamento por `ioctl()` ou `sysfs`.
+Para o usuário, `edu_chat` é um dispositivo virtual em `/dev/edu_chat` que
+funciona como uma sala de chat local. Para o projeto, ele demonstra os conceitos
+centrais de um character device driver: módulo carregável, `cdev`, major/minor,
+`file_operations`, cópia segura entre user space e kernel space, configuração
+por `ioctl()`/`sysfs`, sincronização e espera por eventos com `poll()`.

@@ -17,6 +17,25 @@ static void die(const char *msg)
 	exit(EXIT_FAILURE);
 }
 
+static void drain_existing_messages(int fd)
+{
+	char buf[4096];
+
+	for (;;) {
+		ssize_t n = read(fd, buf, sizeof(buf));
+
+		if (n > 0)
+			continue;
+		if (!n)
+			return;
+		if (errno == EAGAIN)
+			return;
+		if (errno == EINTR)
+			continue;
+		die("initial read");
+	}
+}
+
 int main(int argc, char **argv)
 {
 	const char *path = argc > 1 ? argv[1] : "/dev/edu_chat";
@@ -35,6 +54,8 @@ int main(int argc, char **argv)
 	if (ioctl(fd, EDU_CHAT_IOC_SET_FLAGS, &flags) < 0)
 		die("ioctl SET_FLAGS append");
 
+	drain_existing_messages(fd);
+
 	printf("=== chat: %s entrou (/dev/edu_chat) ===\n"
 	       "digite uma mensagem e aperte enter\n"
 	       "Ctrl+C para sair\n\n", nick);
@@ -46,6 +67,7 @@ int main(int argc, char **argv)
 
 	for (;;) {
 		int ret = poll(fds, 2, -1);
+
 		if (ret < 0) {
 			if (errno == EINTR)
 				continue;

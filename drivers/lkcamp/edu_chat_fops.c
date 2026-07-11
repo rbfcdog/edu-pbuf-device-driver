@@ -14,9 +14,12 @@
 
 #include "edu_chat_internal.h"
 
-static bool edu_chat_read_ready(void)
+static bool edu_chat_read_ready(loff_t pos)
 {
-	return READ_ONCE(edu_chat_len) ||
+	if (pos < 0)
+		return false;
+
+	return (size_t)pos < READ_ONCE(edu_chat_len) ||
 	       !(READ_ONCE(edu_chat_flags) & EDU_CHAT_F_BLOCKING_READ);
 }
 
@@ -61,7 +64,8 @@ static ssize_t edu_chat_read(struct file *file, char __user *buf,
 
 	for (;;) {
 		flags = edu_chat_flags;
-		if (edu_chat_len || !(flags & EDU_CHAT_F_BLOCKING_READ))
+		pos = (size_t)*ppos;
+		if (pos < edu_chat_len || !(flags & EDU_CHAT_F_BLOCKING_READ))
 			break;
 
 		if (file->f_flags & O_NONBLOCK) {
@@ -73,7 +77,7 @@ static ssize_t edu_chat_read(struct file *file, char __user *buf,
 		edu_chat_stats.waits++;
 		mutex_unlock(&edu_chat_lock);
 		ret = wait_event_interruptible(edu_chat_wait,
-					       edu_chat_read_ready());
+					       edu_chat_read_ready(READ_ONCE(*ppos)));
 		if (ret)
 			return ret;
 
@@ -154,7 +158,8 @@ static ssize_t edu_chat_write(struct file *file, const char __user *buf,
 		edu_chat_len = count;
 
 	edu_chat_stats.bytes_written += count;
-	*ppos = 0;
+	if (!append)
+		*ppos = 0;
 	ret = count;
 
 out_unlock:
@@ -247,12 +252,13 @@ static long edu_chat_ioctl(struct file *file, unsigned int cmd,
 
 static __poll_t edu_chat_poll(struct file *file, poll_table *wait)
 {
+	loff_t pos = file->f_pos;
 	__poll_t mask = 0;
 
 	poll_wait(file, &edu_chat_wait, wait);
 
 	mutex_lock(&edu_chat_lock);
-	if (edu_chat_len)
+	if (pos >= 0 && (size_t)pos < edu_chat_len)
 		mask |= EPOLLIN | EPOLLRDNORM;
 	if (edu_chat_limit &&
 	    (!(edu_chat_flags & EDU_CHAT_F_APPEND) ||
